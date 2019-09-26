@@ -16,7 +16,7 @@ pub trait Trait: system::Trait + balances::Trait {
 
 decl_storage! {
     trait Store for Module<T: Trait> as ManagerStorage {
-        pub Orgs get(orgs): map T::AccountId  => Option<Org>;
+        pub Orgs get(orgs): map T::AccountId => Org;
     }
 }
 
@@ -49,9 +49,9 @@ decl_event!(
 mod tests {
 	use super::*;
 
-	use runtime_io::with_externalities;
+	use support::{impl_outer_origin, assert_ok, assert_noop};
+	use runtime_io::{with_externalities, TestExternalities};
 	use primitives::{H256, Blake2Hasher};
-	use support::{impl_outer_origin, assert_ok};
 	use runtime_primitives::{
 		BuildStorage,
 		traits::{BlakeTwo256, IdentityLookup},
@@ -59,32 +59,51 @@ mod tests {
 	};
 
 	impl_outer_origin! {
-		pub enum Origin for Test {}
+		pub enum Origin for ManagerTest {}
 	}
 
 	#[derive(Clone, Eq, PartialEq)]
-	pub struct Test;
-	impl system::Trait for Test {
-		type Origin = Origin;
-		type Index = u64;
-		type BlockNumber = u64;
-		type Hash = H256;
-		type Hashing = BlakeTwo256;
-		type Digest = Digest;
-		type AccountId = u64;
-		type Lookup = IdentityLookup<Self::AccountId>;
-		type Header = Header;
-		type Event = ();
-		type Log = DigestItem;
-	}
-	impl Trait for Test {
-		type Event = ();
-	}
-	type TemplateModule = Module<Test>;
+	pub struct ManagerTest;
 
-	fn new_test_ext() -> runtime_io::TestExternalities<Blake2Hasher> {
-		system::GenesisConfig::<Test>::default().build_storage().unwrap().0.into()
-	}
+    impl system::Trait for ManagerTest {
+        type Origin = Origin;
+        type Index = u64;
+        type BlockNumber = u64;
+        type Hash = H256;
+        type Hashing = BlakeTwo256;
+        type Digest = Digest;
+        type AccountId = u64;
+        type Lookup = IdentityLookup<Self::AccountId>;
+        type Header = Header;
+        type Event = ();
+        type Log = DigestItem;
+    }
+
+    impl balances::Trait for ManagerTest {
+        type Balance = u64;
+        type OnFreeBalanceZero = ();
+        type OnNewAccount = ();
+        type Event = ();
+        type TransactionPayment = ();
+        type TransferPayment = ();
+        type DustRemoval = ();
+    }
+
+    impl super::Trait for ManagerTest {
+        type Event = ();
+    }
+
+    type Manager = super::Module<ManagerTest>;
+
+    fn new_test_ext() -> runtime_io::TestExternalities<Blake2Hasher> {
+        system::GenesisConfig::<Test>::default().build_storage().unwrap().0.into()
+    }
+
+    fn build_ext() -> TestExternalities<Blake2Hasher> {
+        let mut t = system::GenesisConfig::<KittiesTest>::default().build_storage().unwrap().0;
+        t.extend(balances::GenesisConfig::<KittiesTest>::default().build_storage().unwrap().0);
+        t.into()
+    }
 
 	#[test]
 	fn it_creates_org() {
