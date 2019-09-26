@@ -43,9 +43,11 @@ Add to https://polkadot.js.org/apps/#/settings/developer
 
 ```
 {
-  "Org": {
-    "id": "u64",
-    "fee_paid": "Boolean"
+  "Kitty": {
+    "id": "Hash",
+    "dna": "Hash",
+    "price": "Balance",
+    "gen": "u64"
   }
 }
 ```
