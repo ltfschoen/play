@@ -31,6 +31,12 @@ rm -rf /tmp/polkadot-chains/
 
 Detailed logs: `RUST_LOG=debug RUST_BACKTRACE=1`
 
+# Test
+
+```bash
+cargo test -p play-node-runtime
+```
+
 # Custom Types
 
 Add to https://polkadot.js.org/apps/#/settings/developer
