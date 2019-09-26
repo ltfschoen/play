@@ -1,55 +1,44 @@
-const { ApiPromise } = require('@polkadot/api');
+const { ApiPromise, WsProvider } = require('@polkadot/api');
 const testKeyring = require('@polkadot/keyring/testing');
-const { randomAsU8a } = require('@polkadot/util-crypto');
 
 const ALICE = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';
-const ORG = 123;
 
 async function main () {
-  const api = await ApiPromise.create(
-    {
-      types: {
-        Org: {
-          id: 'u64',
-          fee_paid: 'Boolean'
-        },
+  const provider = new WsProvider('ws://127.0.0.1:9944');
+  const api = await ApiPromise.create({
+    provider,
+    types: {
+      Kitty: {
+        id: "H256",
+        dna: "H256",
+        price: "Balance",
+        gen: "u64"
       }
     }
-  );
-
+  });
   const keyring = testKeyring.default();
   const nonce = await api.query.system.accountNonce(ALICE);
   const alicePair = keyring.getPair(ALICE);
-  const recipient = keyring.addFromSeed(randomAsU8a(32)).address;
 
-  console.log('Creating org', ORG, 'from', alicePair.address, 'to', recipient, 'with nonce', nonce.toString());
+  console.log('Creating Kitty with', alicePair.address, 'with nonce', nonce.toString());
 
   api.tx.manager
-    .createOrg(ORG)
+    .createKitty()
     .signAndSend(alicePair, { nonce }, async ({ events = [], status }) => {
       console.log('Transaction status:', status.type);
-
       if (status.isFinalized) {
         console.log('Completed at block hash', status.asFinalized.toHex());
-
-        let unsub = api.query.manager.orgs(ORG, orgInfo => {
-          if (orgInfo.isNone){
-            console.log(`Org info is <None>`);
+        await api.query.manager.allKittiesArray(0, async (kittyHash) => {
+          if (kittyHash.isNone){
+            console.log(`Kittie hash is <None>`);
           } else {
-            console.log(`Org info is ${orgInfo.isSome().unwrap()}`);
+            console.log(`Kittie hash is ${kittyHash}`);
+            await api.query.manager.kitties(kittyHash, function (kitty) {
+              console.log('Kitty: ', kitty.toJSON());
+            });
           }
-        }).then(res => {
-          return res && unsub();
         })
         .catch(console.error);
-
-        console.log('Events:');
-
-        events.forEach(({ phase, event: { data, method, section } }) => {
-          console.log('\t', phase.toString(), `: ${section}.${method}`, data.toString());
-        });
-
-        process.exit(0);
       }
     });
 }
