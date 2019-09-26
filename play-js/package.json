@@ -1,0 +1,13 @@
+{
+  "name": "play-js",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Luke Schoen",
+  "license": "MIT",
+  "scripts": {
+    "start": "node src/play.js"
+  },
+  "dependencies": {
+    "@polkadot/api": "^0.92.1"
+  }
+}
