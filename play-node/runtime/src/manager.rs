@@ -16,7 +16,7 @@ pub trait Trait: system::Trait + balances::Trait {
 
 decl_storage! {
     trait Store for Module<T: Trait> as ManagerStorage {
-        pub Orgs get(orgs): map T::AccountId  => Option<Org>;
+        pub Orgs get(orgs): map T::AccountId => Org;
     }
 }
 
