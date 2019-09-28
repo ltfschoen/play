@@ -14,6 +14,7 @@
   * [Interact with blockchain using UI](#chapter-6d9058)
   * [Create custom blockchain UI](#chapter-1c48d9)
   * [Interact with blockchain using CLI](#chapter-9c32f0)
+  * [Other resources](#chapter-7af38c)
 
 Note: Generate a new chapter with `openssl rand -hex 3`
 
@@ -211,6 +212,7 @@ Terminal 2: Bob's Substrate-based node on a different TCP port of 30334, and wit
 
   * Module-specific
     * https://substrate.dev/substrate-collectables-workshop/#/1/creating-a-module
+    * https://substrate.dev/substrate-verifiable-credentials
     * https://substrate.dev/docs/en/tutorials/adding-a-module-to-your-runtime#adding-runtime-hooks
     * https://github.com/paritytech/substrate/blob/master/srml/example/src/lib.rs
 
@@ -220,6 +222,13 @@ Terminal 2: Bob's Substrate-based node on a different TCP port of 30334, and wit
       * https://substrate.dev/rustdocs/v1.0/srml_support_procedural/macro.decl_storage.html
       * https://polkadot.js.org/api/types/#codec-types
       * https://substrate.dev/rustdocs/v1.0/srml_support/storage/trait.StorageValue.html
+      * https://substrate.dev/rustdocs/v1.0/srml_support/storage/trait.StorageMap.html
+      * https://doc.rust-lang.org/std/vec/struct.Vec.html
+      * https://substrate.dev/docs/en/runtime/types/genesisconfig-struct
+
+  * General
+    * References:
+      * https://github.com/paritytech/substrate/blob/master/srml/example/src/lib.rs
 
 ## Import a template SRML module <a id="chapter-352eaa"></a>
 
@@ -246,14 +255,36 @@ Terminal 2: Bob's Substrate-based node on a different TCP port of 30334, and wit
 }
 ```
 
+* References:
+  * https://polkadot.js.org/api/start/types.extend.html
+
 ## Create custom blockchain UI <a id="chapter-1c48d9"></a>
 
 * TODO
 
 * References:
-  * https://github.com/polkadot-js/api/blob/jg-hex-string-seeds/docs/start/keyring.md
-  * https://polkadot.js.org/api/start/keyring.html
+  * Types
+    * https://polkadot.js.org/api/types/#polkadot-types-2
+
+  * General
+    * API / Testing https://github.com/polkadot-js/api/blob/master/packages/api/test/e2e/api/promise-tx-eras.spec.ts
+    * https://github.com/polkadot-js/api/blob/jg-hex-string-seeds/docs/start/keyring.md
+    * https://polkadot.js.org/api/start/keyring.html
+    * Storage cache https://github.com/polkadot-js/apps/blob/master/packages/app-storage/src/Query.tsx
+    * https://github.com/substrate-developer-hub/substrate-front-end-template/blob/master/src/examples/TemplateModule.jsx
+    * Scripts https://github.com/soc1c/kusama-scripts/blob/master/validator-nominations/nominations.js
+    * TypeScript https://polkadot.js.org/api/start/typescript.html
 
 ## Interact with blockchain using CLI <a id="chapter-9c32f0"></a>
 
 * TODO
+
+* References:
+  * https://github.com/polkadot-js/tools/tree/master/packages/api-cli
+
+
+## Other resources <a id="chapter-7af38c"></a>
+
+* References:
+  * https://github.com/paritytech/substrate/releases
+  * https://substrate.dev/en/tutorials
