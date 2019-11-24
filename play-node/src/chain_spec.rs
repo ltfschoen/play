@@ -1,7 +1,7 @@
-use primitives::{ed25519, sr25519, Pair};
+use primitives::{H256, ed25519, sr25519, Pair};
 use play_node_runtime::{
 	AccountId, GenesisConfig, ConsensusConfig, TimestampConfig, BalancesConfig,
-	SudoConfig, IndicesConfig,
+	SudoConfig, IndicesConfig, KittyConfig
 };
 use substrate_service;
 
@@ -115,5 +115,8 @@ fn testnet_genesis(initial_authorities: Vec<AuthorityId>, endowed_accounts: Vec<
 		sudo: Some(SudoConfig {
 			key: root_key,
 		}),
+		kitty: Some(KittyConfig {
+			kitty: vec![ (0, H256::random(), H256::random(), 0) ]
+		})
 	}
 }

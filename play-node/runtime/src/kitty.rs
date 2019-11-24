@@ -169,3 +169,95 @@ impl<T: Trait> Module<T> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	// Import test module dependencies
+	use support::{impl_outer_origin, assert_ok, assert_noop};
+	use runtime_io::{
+		with_externalities, TestExternalities
+	};
+	use primitives::{H256, Blake2Hasher};
+	use runtime_primitives::{
+		BuildStorage, traits::{BlakeTwo256, IdentityLookup},
+		testing::{Digest, DigestItem, Header}
+	};
+
+	impl_outer_origin! {
+		pub enum Origin for KittyTest {}
+	}
+
+	#[derive(Clone, Eq, PartialEq)]
+	pub struct KittyTest;
+
+	// Implement the system module traits
+	impl system::Trait for KittyTest {
+		type Origin = Origin;
+    type Index = u64;
+    type BlockNumber = u64;
+    type Hash = H256;
+    type Hashing = BlakeTwo256;
+    type Digest = Digest;
+    type AccountId = u64;
+    type Lookup = IdentityLookup<Self::AccountId>;
+    type Header = Header;
+    type Event = ();
+    type Log = DigestItem;
+	}
+
+	// Implement the balances module traits
+	impl balances::Trait for KittyTest {
+		type Balance = u64;
+		type OnFreeBalanceZero = ();
+		type OnNewAccount = ();
+		type Event = ();
+		type TransactionPayment = ();
+		type TransferPayment = ();
+		type DustRemoval = ();
+	}
+
+	// Implement the trait for our own module, `super::Trait`
+	impl super::Trait for KittyTest {
+    type Event = ();
+	}
+
+	// Implement type alias for Kitty module to easily access its methods
+	// since the `Module` struct wraps all functions attached to it
+	type Kitty = super::Module<KittyTest>;
+
+	// Use a wrapper function to create `TestExternalities`.
+	// `build_ext` wrapper function will be used to construct mocks for each unit test.
+	// and mostly just build a genesis storage key/value store according to our desired mockup.
+	fn build_ext() -> TestExternalities<Blake2Hasher> {
+		let mut t = system::GenesisConfig::<KittyTest>::default().build_storage().unwrap().0;
+		t.extend(balances::GenesisConfig::<KittyTest>::default().build_storage().unwrap().0);
+		// Seed the chain with Kitty
+		t.extend(GenesisConfig::<KittyTest> {
+				kitty: vec![ (0, H256::random(), H256::random(), 0) ],
+		}.build_storage().unwrap().0);
+
+		t.into()
+	}
+
+	#[test]
+	fn should_build_genesis_kitties() {
+		with_externalities(&mut build_ext(), || {
+			// Check that kitties exist at genesis
+			let kitty0 = Kitty::kitty_by_index(0);
+			let kitty1 = Kitty::network_by_index(1);
+
+			// Check we have 2 kitties, as specified
+			assert_eq!(Kitty::all_kitties_count(), 2);
+
+			// Check that they are owned correctly
+			assert_eq!(Kitty::owner_of_kitty(kitty0), Some(0));
+			assert_eq!(Kitty::owner_of_kitty(kitty1), Some(1));
+
+			// Check owners own the correct amount of kitties
+			assert_eq!(Kitty::owned_kitty_count(0), 1);
+			assert_eq!(Kitty::owned_kitty_count(2), 0);
+		})
+	}
+}
