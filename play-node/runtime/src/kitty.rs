@@ -2,9 +2,12 @@ use support::{decl_storage, decl_module, StorageValue, StorageMap,
     dispatch::Result, ensure, decl_event};
 use system::ensure_signed;
 use runtime_primitives::traits::{As, Hash};
+#[cfg(feature = "std")]
+use serde::{Serialize, Deserialize};
 use parity_codec::{Encode, Decode};
 
 #[derive(Encode, Decode, Default, Clone, PartialEq)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct Kitty<Hash, Balance> {
     id: Hash,
     dna: Hash,
