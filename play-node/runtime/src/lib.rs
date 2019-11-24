@@ -202,7 +202,7 @@ construct_runtime!(
 		Indices: indices,
 		Balances: balances,
 		Sudo: sudo,
-		Kitty: kitty::{Module, Call, Storage, Event<T>},
+		KittyConfig: kitty::{Module, Call, Storage, Event<T>},
 	}
 );
 
