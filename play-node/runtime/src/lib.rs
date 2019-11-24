@@ -54,7 +54,7 @@ pub type BlockNumber = u64;
 /// Index of an account's extrinsic in the chain.
 pub type Nonce = u64;
  
-mod manager;
+mod kitty;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -185,7 +185,7 @@ impl sudo::Trait for Runtime {
 	type Proposal = Call;
 }
 
-impl manager::Trait for Runtime {
+impl kitty::Trait for Runtime {
 	type Event = Event;
 }
 
@@ -202,7 +202,7 @@ construct_runtime!(
 		Indices: indices,
 		Balances: balances,
 		Sudo: sudo,
-		Kittie: manager::{Module, Call, Storage, Event<T>},
+		Kitty: kitty::{Module, Call, Storage, Event<T>},
 	}
 );
 

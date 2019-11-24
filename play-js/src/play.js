@@ -22,18 +22,18 @@ async function main () {
 
   console.log('Creating Kitty with', alicePair.address, 'with nonce', nonce.toString());
 
-  api.tx.manager
+  api.tx.kitty
     .createKitty()
     .signAndSend(alicePair, { nonce }, async ({ events = [], status }) => {
       console.log('Transaction status:', status.type);
       if (status.isFinalized) {
         console.log('Completed at block hash', status.asFinalized.toHex());
-        await api.query.manager.allKittiesArray(0, async (kittyHash) => {
+        await api.query.kitty.allKittiesArray(0, async (kittyHash) => {
           if (kittyHash.isNone){
             console.log(`Kittie hash is <None>`);
           } else {
             console.log(`Kittie hash is ${kittyHash}`);
-            await api.query.manager.kitties(kittyHash, function (kitty) {
+            await api.query.kitty.kitties(kittyHash, function (kitty) {
               console.log('Kitty: ', kitty.toJSON());
             });
           }

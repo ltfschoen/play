@@ -30,8 +30,8 @@ decl_event!(
 );
 
 decl_storage! {
-    trait Store for Module<T: Trait> as KittyStorage {
-        Kitties get(kitty): map T::Hash => Kitty<T::Hash, T::Balance>;
+    trait Store for Module<T: Trait> as Kitty {
+        Kitties get(kitty) config(): map T::Hash => Kitty<T::Hash, T::Balance>;
         KittyOwner get(owner_of): map T::Hash => Option<T::AccountId>;
 
         AllKittiesArray get(kitty_by_index): map u64 => T::Hash;
