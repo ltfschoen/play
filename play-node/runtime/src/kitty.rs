@@ -1,10 +1,18 @@
-use support::{decl_storage, decl_module, StorageValue, StorageMap,
-    dispatch::Result, ensure, decl_event};
-use system::ensure_signed;
-use runtime_primitives::traits::{As, Hash};
+use rstd::prelude::*;
+use rstd::fmt::Debug;
+
+use support::{decl_storage, Parameter, decl_module, StorageValue, StorageMap,
+    dispatch::Result, print, ensure, decl_event};
+use support::traits::{Currency, Randomness};
+use {system::ensure_signed, timestamp};
+// use runtime_primitives::traits::{As, Hash};
 #[cfg(feature = "std")]
 use serde::{Serialize, Deserialize};
-use parity_codec::{Encode, Decode};
+use codec::{Encode, Decode};
+use runtime_io::blake2_128;
+use sr_primitives::traits::{CheckedSub, CheckedAdd, Member,
+    SimpleArithmetic, MaybeSerializeDeserialize, CheckedDiv,
+    CheckedMul, Hash};
 
 #[derive(Encode, Decode, Default, Clone, PartialEq)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -15,16 +23,24 @@ pub struct Kitty<Hash, Balance> {
     gen: u64,
 }
 
-pub trait Trait: balances::Trait {
+/// The module's configuration trait.
+pub trait Trait: system::Trait {
+    type Randomness: Randomness<Self::Hash>;
+    type Currency: Currency<Self::AccountId>;
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 }
 
+type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance;
+
+// pub trait Trait: balances::Trait {
+//     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
+// }
+
 decl_event!(
-    pub enum Event<T>
-    where
-        <T as system::Trait>::AccountId,
-        <T as system::Trait>::Hash,
-        <T as balances::Trait>::Balance
+    pub enum Event<T> where
+        AccountId = <T as system::Trait>::AccountId,
+        Hash = <T as system::Trait>::Hash,
+        Balance = BalanceOf<T>,
     {
         Created(AccountId, Hash),
         PriceSet(AccountId, Hash, Balance),
@@ -34,7 +50,7 @@ decl_event!(
 
 decl_storage! {
     trait Store for Module<T: Trait> as Kitty {
-        Kitties get(kitty) config(): map T::Hash => Kitty<T::Hash, T::Balance>;
+        Kitties get(kitty) config(): map T::Hash => Kitty<T::Hash, BalanceOf<T>>;
         KittyOwner get(owner_of): map T::Hash => Option<T::AccountId>;
 
         AllKittiesArray get(kitty_by_index): map u64 => T::Hash;
@@ -52,29 +68,35 @@ decl_storage! {
 decl_module! {
     pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 
-        fn deposit_event<T>() = default;
+        // Initialize events for this module.
+        fn deposit_event() = default;
+        // fn deposit_event<T>() = default;
 
         fn create_kitty(origin) -> Result {
             let sender = ensure_signed(origin)?;
-            let nonce = <Nonce<T>>::get();
-            let random_hash = (<system::Module<T>>::random_seed(), &sender, nonce)
-                .using_encoded(<T as system::Trait>::Hashing::hash);
+            let nonce = <Nonce>::get();
+            // let nonce = <Nonce<T>>::get();
+            // Generate a random 128bit value
+            let random_hash = Self::random_value(&sender);
+            // (<system::Module<T>>::random_seed(), &sender, nonce)
+            //     .using_encoded(<T as system::Trait>::Hashing::hash);
 
             let new_kitty = Kitty {
                 id: random_hash,
                 dna: random_hash,
-                price: <T::Balance as As<u64>>::sa(0),
+                price: 0.into(), //<T::Balance as As<u64>>::sa(0),
                 gen: 0,
             };
 
             Self::_mint(sender, random_hash, new_kitty)?;
 
-            <Nonce<T>>::mutate(|n| *n += 1);
+            <Nonce>::mutate(|n| *n += 1);
+            // <Nonce<T>>::mutate(|n| *n += 1);
 
             Ok(())
         }
 
-        fn set_price(origin, kitty_id: T::Hash, new_price: T::Balance) -> Result {
+        fn set_price(origin, kitty_id: T::Hash, new_price: Option<BalanceOf<T>>) -> Result {
             let sender = ensure_signed(origin)?;
 
             ensure!(<Kitties<T>>::exists(kitty_id), "This cat does not exist");
@@ -106,7 +128,16 @@ decl_module! {
 }
 
 impl<T: Trait> Module<T> {
-    fn _mint(to: T::AccountId, kitty_id: T::Hash, new_kitty: Kitty<T::Hash, T::Balance>) -> Result {
+    fn random_value(sender: &T::AccountId) -> [u8; 16] {
+        let payload = (
+            T::Randomness::random(&[0]),
+            sender,
+            <system::Module<T>>::extrinsic_index(),
+            <system::Module<T>>::block_number(),
+        );
+        payload.using_encoded(blake2_128)
+    }
+    fn _mint(to: T::AccountId, kitty_id: T::Hash, new_kitty: Kitty<T::Hash, Option<BalanceOf<T>>>) -> Result {
         ensure!(!<KittyOwner<T>>::exists(kitty_id), "Kitty already exists");
 
         let owned_kitty_count = Self::owned_kitty_count(&to);
@@ -123,7 +154,8 @@ impl<T: Trait> Module<T> {
         <KittyOwner<T>>::insert(kitty_id, &to);
 
         <AllKittiesArray<T>>::insert(all_kitties_count, kitty_id);
-        <AllKittiesCount<T>>::put(new_all_kitties_count);
+        <AllKittiesCount>::put(new_all_kitties_count);
+        // <AllKittiesCount<T>>::put(new_all_kitties_count);
         <AllKittiesIndex<T>>::insert(kitty_id, all_kitties_count);
 
         <OwnedKittiesArray<T>>::insert((to.clone(), owned_kitty_count), kitty_id);
@@ -185,7 +217,7 @@ mod tests {
 	use primitives::{H256, Blake2Hasher};
 	use runtime_primitives::{
 		BuildStorage, traits::{BlakeTwo256, IdentityLookup},
-		testing::{Digest, DigestItem, Header}
+		testing::{Digest, DigestItem, Header, UintAuthorityId}
 	};
 
 	impl_outer_origin! {
@@ -198,16 +230,16 @@ mod tests {
 	// Implement the system module traits
 	impl system::Trait for KittyTest {
 		type Origin = Origin;
-    type Index = u64;
-    type BlockNumber = u64;
-    type Hash = H256;
-    type Hashing = BlakeTwo256;
-    type Digest = Digest;
-    type AccountId = u64;
-    type Lookup = IdentityLookup<Self::AccountId>;
-    type Header = Header;
-    type Event = ();
-    type Log = DigestItem;
+        type Index = u64;
+        type BlockNumber = u64;
+        type Hash = H256;
+        type Hashing = BlakeTwo256;
+        type Digest = Digest;
+        type AccountId = u64;
+        type Lookup = IdentityLookup<Self::AccountId>;
+        type Header = Header;
+        type Event = ();
+        type Log = DigestItem;
 	}
 
 	// Implement the balances module traits
@@ -223,12 +255,14 @@ mod tests {
 
 	// Implement the trait for our own module, `super::Trait`
 	impl super::Trait for KittyTest {
-    type Event = ();
+        type Currency = Balances;
+        type Event = ();
 	}
 
 	// Implement type alias for Kitty module to easily access its methods
 	// since the `Module` struct wraps all functions attached to it
-	type Kitty = super::Module<KittyTest>;
+    type Balances = balances::Module<Test>;
+	type KittyModule = super::Module<KittyTest>;
 
 	// Use a wrapper function to create `TestExternalities`.
 	// `build_ext` wrapper function will be used to construct mocks for each unit test.
@@ -237,7 +271,7 @@ mod tests {
 		let mut t = system::GenesisConfig::<KittyTest>::default().build_storage().unwrap().0;
 		t.extend(balances::GenesisConfig::<KittyTest>::default().build_storage().unwrap().0);
 		// Seed the chain with Kitty
-		t.extend(GenesisConfig::<KittyTest> {
+		t.extend(kitty::GenesisConfig::<KittyTest> {
 				kitty: vec![ (0, H256::random(), H256::random(), 0) ],
 		}.build_storage().unwrap().0);
 
@@ -248,19 +282,19 @@ mod tests {
 	fn should_build_genesis_kitties() {
 		with_externalities(&mut build_ext(), || {
 			// Check that kitties exist at genesis
-			let kitty0 = Kitty::kitty_by_index(0);
-			let kitty1 = Kitty::network_by_index(1);
+			let kitty0 = KittyModule::kitty_by_index(0);
+			let kitty1 = KittyModule::network_by_index(1);
 
 			// Check we have 2 kitties, as specified
-			assert_eq!(Kitty::all_kitties_count(), 2);
+			assert_eq!(KittyModule::all_kitties_count(), 2);
 
 			// Check that they are owned correctly
-			assert_eq!(Kitty::owner_of_kitty(kitty0), Some(0));
-			assert_eq!(Kitty::owner_of_kitty(kitty1), Some(1));
+			assert_eq!(KittyModule::owner_of_kitty(kitty0), Some(0));
+			assert_eq!(KittyModule::owner_of_kitty(kitty1), Some(1));
 
 			// Check owners own the correct amount of kitties
-			assert_eq!(Kitty::owned_kitty_count(0), 1);
-			assert_eq!(Kitty::owned_kitty_count(2), 0);
+			assert_eq!(KittyModule::owned_kitty_count(0), 1);
+			assert_eq!(KittyModule::owned_kitty_count(2), 0);
 		})
 	}
 }
